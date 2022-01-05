@@ -2,6 +2,9 @@ module HealthCheck
   class S3HealthCheck
     extend BaseHealthCheck
 
+    HEALTH_CHECK_KEY_PREFIX = "healthcheck_"
+    private_constant :HEALTH_CHECK_KEY_PREFIX
+
     class << self
       def check
         unless defined?(::Aws)
@@ -47,13 +50,21 @@ module HealthCheck
 
       def W(bucket)
         aws_s3_client.put_object(bucket: bucket,
-                                 key: "healthcheck_#{::Rails.application.class.parent_name}",
+                                 key: health_check_key,
                                  body: Time.new.to_s)
       end
 
       def D(bucket)
         aws_s3_client.delete_object(bucket: bucket,
-                                    key: "healthcheck_#{::Rails.application.class.parent_name}")
+                                    key: health_check_key)
+      end
+
+      def health_check_key
+        if Rails::VERSION::MAJOR >= 6
+          "#{HEALTH_CHECK_KEY_PREFIX}#{::Rails.application.class.module_parent_name}"
+        else
+          "#{HEALTH_CHECK_KEY_PREFIX}#{::Rails.application.class.parent_name}"
+        end
       end
     end
   end
